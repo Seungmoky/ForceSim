@@ -55,7 +55,10 @@ namespace ForceSim.App
         public LogFileItem SelectedLogFile
         {
             get => _selectedLogFile;
-            set { _selectedLogFile = value; }
+            set { _selectedLogFile = value;
+                _lines = null;
+                _lineIndex = 0;
+            }
         }
 
         public MainWindow()
@@ -138,8 +141,11 @@ namespace ForceSim.App
                 return;
             }
 
-            _lines = new List<string>(File.ReadAllLines(path));
-            _lineIndex = 0;
+            if (_lines == null || _lines.Count == 0)
+            {
+                _lines = new List<string>(File.ReadAllLines(path));
+                _lineIndex = 0;
+            }
 
             BtnStart.IsEnabled = false;
             BtnStop.IsEnabled = true;
