@@ -23,7 +23,7 @@ namespace ForceSim.App
     /// <summary>
     /// MainWindow.xaml에 대한 상호 작용 논리
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class MainWindow : Window, INotifyPropertyChanged
     {
         private readonly DispatcherTimer _timer = new DispatcherTimer();
         private List<string> _lines = new List<string>();
@@ -39,6 +39,19 @@ namespace ForceSim.App
         public ObservableCollection<LogFileItem> LogFiles { get; } = new ObservableCollection<LogFileItem>();
         public int GridCols { get; set; }
         public int GridRows { get; set; }
+        private short _heatMin = 0;
+        public short HeatMin
+        {
+            get => _heatMin;
+            set { _heatMin = value; OnPropertyChanged(); }
+        }
+
+        private short _heatMax = 0;
+        public short HeatMax
+        {
+            get => _heatMax;
+            set { _heatMax = value; OnPropertyChanged(); }
+        }
         public LogFileItem SelectedLogFile
         {
             get => _selectedLogFile;
@@ -128,7 +141,7 @@ namespace ForceSim.App
             _timer.Stop();
             InitCells();
             _hotCell = null;
-_hotUntil = DateTime.MinValue;
+            _hotUntil = DateTime.MinValue;
             _lines.Clear();
             _lineIndex = 0;
 
@@ -184,6 +197,7 @@ _hotUntil = DateTime.MinValue;
                     if (_hotCell != null) _hotCell.IsHot = false;
                     _hotCell = cell;
                 }
+                bool needHeatRecalc = false;
 
                 cell.IsHot = true;
 
@@ -192,11 +206,17 @@ _hotUntil = DateTime.MinValue;
 
                 cell.IsHot = true;
                 cell.Count += 1;
-                cell.SimP = simP;
-                if (cell.Count == 0 || simP > cell.MaxSimP)
+                // MaxSimP 변경 감지
+                if (simP > cell.MaxSimP)
+                {
                     cell.MaxSimP = simP;
+                    needHeatRecalc = true;
+                }
+                cell.SimP = simP;
                 cell.Delta = delta;
 
+                if (needHeatRecalc)
+                    RecalcHeatRange();
                 AppendLog($"X={x},Y={y} -> cell=({col},{row})  FW_P={fwP}  SIM_P={simP}  Δ={delta}");
                 return;
             }
@@ -243,5 +263,28 @@ _hotUntil = DateTime.MinValue;
             }
             CellsView.ItemsSource = Cells;
         }
+
+        private void RecalcHeatRange()
+        {
+            short min = short.MaxValue;
+            short max = 0;
+
+            foreach (var c in Cells)
+            {
+                if (c.Count <= 0) continue;
+                if (c.MaxSimP < min) min = c.MaxSimP;
+                if (c.MaxSimP > max) max = c.MaxSimP;
+            }
+
+            if (max > 0)
+            {
+                HeatMin = min;
+                HeatMax = max;
+            }
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+        private void OnPropertyChanged([CallerMemberName] string name = null)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 }

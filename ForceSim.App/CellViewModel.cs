@@ -9,7 +9,13 @@ public sealed class CellViewModel : INotifyPropertyChanged
     public int Count
     {
         get => _count;
-        set { _count = value; OnPropertyChanged(nameof(Count)); }
+        set
+        {
+            _count = value;
+            OnPropertyChanged(nameof(Count));
+            OnPropertyChanged(nameof(HasSim));
+            OnPropertyChanged(nameof(Label));
+        }
     }
 
     private short _simP;

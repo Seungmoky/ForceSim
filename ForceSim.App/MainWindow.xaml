@@ -7,7 +7,7 @@
         mc:Ignorable="d"
         Title="MainWindow" Width="900" Height="600">
     <Window.Resources>
-        <local:MaxSimPToBrushConverter x:Key="MaxSimHeatBrush" MaxValue="300"/>
+        <local:MinMaxHeatBrushConverter x:Key="MinMaxHeatBrush"/>
     </Window.Resources>
     <Grid Margin="10">
         <Grid.RowDefinitions>
@@ -59,7 +59,14 @@
 
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border BorderThickness="0.5" Background="{Binding MaxSimP, Converter={StaticResource MaxSimHeatBrush}}">
+                            <Border BorderThickness="0.5">
+                                <Border.Background>
+                                    <MultiBinding Converter="{StaticResource MinMaxHeatBrush}">
+                                        <Binding Path="MaxSimP"/>
+                                        <Binding Path="HeatMin" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                                        <Binding Path="HeatMax" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                                    </MultiBinding>
+                                </Border.Background> 
                                 <Border.Style>
                                     <Style TargetType="Border">
                                         <Setter Property="BorderBrush" Value="Gray"/>
@@ -74,17 +81,18 @@
                                     </Style>
                                 </Border.Style>
 
-                                <TextBlock Text="{Binding Label}">
-        <!-- (여긴 기존 TextBlock.Style 그대로 유지) -->
+                                <TextBlock Text="{Binding Label}" FontFamily="Consolas">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
+                                            <!-- 기본: (col,row) -->
                                             <Setter Property="HorizontalAlignment" Value="Left"/>
                                             <Setter Property="VerticalAlignment" Value="Top"/>
                                             <Setter Property="Margin" Value="2"/>
-                                            <Setter Property="FontFamily" Value="Consolas"/>
                                             <Setter Property="FontSize" Value="10"/>
+                                            <Setter Property="FontWeight" Value="Normal"/>
 
                                             <Style.Triggers>
+                                                <!-- 값 있음: MaxSimP -->
                                                 <DataTrigger Binding="{Binding HasSim}" Value="True">
                                                     <Setter Property="HorizontalAlignment" Value="Center"/>
                                                     <Setter Property="VerticalAlignment" Value="Center"/>
