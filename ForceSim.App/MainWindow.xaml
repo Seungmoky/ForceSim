@@ -6,6 +6,9 @@
         xmlns:local="clr-namespace:ForceSim.App"
         mc:Ignorable="d"
         Title="MainWindow" Width="900" Height="600">
+    <Window.Resources>
+        <local:MaxSimPToBrushConverter x:Key="MaxSimHeatBrush" MaxValue="300"/>
+    </Window.Resources>
     <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -56,7 +59,7 @@
 
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border BorderThickness="0.5" Margin="0">
+                            <Border BorderThickness="0.5" Background="{Binding MaxSimP, Converter={StaticResource MaxSimHeatBrush}}">
                                 <Border.Style>
                                     <Style TargetType="Border">
                                         <Setter Property="BorderBrush" Value="Gray"/>
