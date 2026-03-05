@@ -1,0 +1,37 @@
+# ==============================
+# Ignore everything by default
+# ==============================
+*
+
+# ==============================
+# Allow directories (for traversal)
+# ==============================
+!*/
+
+# ==============================
+# Explicitly ignore Visual Studio artifacts
+# ==============================
+ForceAlgoDll/obj/
+ForceSim.App/obj/
+.vs/
+
+# ==============================
+# Allow only these file types
+# ==============================
+!*.cs
+!*.xaml
+!*.png
+!*.csv
+!*.exe
+!*.sln
+!*.conf
+!*.csproj
+!*.txt
+!*.c
+!*.h
+!*.dll
+
+# ==============================
+# Allow gitignore itself
+# ==============================
+!.gitignore
