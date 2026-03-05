@@ -30,6 +30,13 @@ ForceSim.App/obj/
 !*.c
 !*.h
 !*.dll
+!*.user
+!*.filters
+!*.vcxproj
+!*.cpp
+!*.config
+!*.settings
+!*.resx
 
 # ==============================
 # Allow gitignore itself
