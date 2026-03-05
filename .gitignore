@@ -37,6 +37,7 @@ ForceSim.App/obj/
 !*.config
 !*.settings
 !*.resx
+!*.md
 
 # ==============================
 # Allow gitignore itself
