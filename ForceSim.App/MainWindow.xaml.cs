@@ -40,6 +40,12 @@ namespace ForceSim.App
         public int GridCols { get; set; }
         public int GridRows { get; set; }
         private short _heatMin = 0;
+        private string _progressText = "Line: 0 / 0";
+        public string ProgressText
+        {
+            get => _progressText;
+            set { _progressText = value; OnPropertyChanged(); }
+        }
         public short HeatMin
         {
             get => _heatMin;
@@ -87,6 +93,17 @@ namespace ForceSim.App
             LogLines.Add(msg);
             while (LogLines.Count > 5)
                 LogLines.RemoveAt(0);
+        }
+        private void UpdateProgressText()
+        {
+            int total = (_lines == null) ? 0 : _lines.Count;
+
+            // 사람이 보기 좋게 1-based로 보여주기
+            int current = _lineIndex;
+            if (total > 0 && current < 0) current = 0;
+            if (total > 0 && current > total) current = total;
+
+            ProgressText = $"Line: {current} / {total}";
         }
 
         private static string F4(int v) => string.Format("{0,4}", v); // 4칸 오른쪽 정렬
@@ -152,11 +169,13 @@ namespace ForceSim.App
 
             AppendLog($"[INFO] start: {item.FileName}  lines={_lines.Count}");
             _timer.Start();
+            UpdateProgressText();
         }
 
         private void BtnStop_Click(object sender, System.Windows.RoutedEventArgs e)
         {
             _timer.Stop();
+            UpdateProgressText();
             BtnStart.IsEnabled = true;
             BtnStop.IsEnabled = false;
             AppendLog("[INFO] stopped");
@@ -174,6 +193,7 @@ namespace ForceSim.App
             BtnStart.IsEnabled = true;
             BtnStop.IsEnabled = false;
             LogLines.Clear();
+            UpdateProgressText();
             AppendLog("[INFO] reset");
         }
 
@@ -189,10 +209,12 @@ namespace ForceSim.App
             {
                 BtnStop_Click(null, null);
                 AppendLog("[INFO] EOF");
+                UpdateProgressText();
                 return;
             }
 
             string line = _lines[_lineIndex++];
+            UpdateProgressText();
             // 타임스탬프 [08:35:15.000] 같은 거 포함되어 있으니,
             // 필요한 경우 뒤에서 파싱하면 됨. 일단 전체 line 그대로 넣고 Regex가 매칭되는지 확인.
             if (LogParser.TryParseScaler(line, out var scaler6))

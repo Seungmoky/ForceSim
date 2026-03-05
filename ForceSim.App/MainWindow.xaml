@@ -44,6 +44,11 @@
             <Button x:Name="BtnStart" Content="Start" Width="90" Height="34" Margin="0,0,8,0" Click="BtnStart_Click"/>
             <Button x:Name="BtnStop" Content="Stop" Width="90" Height="34" Margin="0,0,8,0" Click="BtnStop_Click" IsEnabled="False"/>
             <Button x:Name="BtnReset" Content="Reset" Width="90" Height="34" Click="BtnReset_Click"/>
+            <TextBlock Text="{Binding ProgressText}"
+               Margin="12,0,0,0"
+               VerticalAlignment="Center"
+               FontFamily="Consolas"
+               FontSize="12"/>
         </StackPanel>
 
         <!-- Table (top) -->
