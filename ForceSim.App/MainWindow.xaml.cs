@@ -65,7 +65,8 @@ namespace ForceSim.App
             _timer.Tick += Timer_Tick;
 
             // setting.conf는 exe 폴더 옆에 두는 걸 추천
-            string confPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "setting.conf");
+            string root = GetProjectRoot();
+            string confPath = System.IO.Path.Combine(root, "setting.conf");
             _settings = IniReader.LoadSettings(confPath);
             GridCols = _settings.Cols;
             GridRows = _settings.Rows;
@@ -85,9 +86,28 @@ namespace ForceSim.App
                 LogLines.RemoveAt(0);
         }
 
+        private static string F4(int v) => string.Format("{0,4}", v); // 4칸 오른쪽 정렬
+        private static string F3(int v) => string.Format("{0,3}", v); // 3칸 오른쪽 정렬
+
+        private static string BuildLogLine(
+            int x, int y,
+            int simP,
+            short[] s6,
+            int delta,
+            int sx, int sy)
+        {
+            // s6: Sa..Sf 로 표시
+            // 자리 정렬을 위해 각 항목을 "Label:####" 형태로 만들고, ####은 4칸 고정
+            return
+                $"X:{F4(x)}  Y:{F4(y)}  P:{F4(simP)}  " +
+                $"Sa:{F4(s6[0])}  Sb:{F4(s6[1])}  Sc:{F4(s6[2])}  Sd:{F4(s6[3])}  Se:{F4(s6[4])}  Sf:{F4(s6[5])}  " +
+                $"Δ:{F4(delta)}  SX:{F3(sx)}  SY:{F3(sy)}";
+        }
+
         private void RefreshLogFileList()
         {
-            string dir = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs");
+            string root = GetProjectRoot();
+            string dir = System.IO.Path.Combine(root, "logs");
             Directory.CreateDirectory(dir);
 
             LogFiles.Clear();
@@ -217,7 +237,7 @@ namespace ForceSim.App
 
                 if (needHeatRecalc)
                     RecalcHeatRange();
-                AppendLog($"X={x},Y={y} -> cell=({col},{row})  FW_P={fwP}  SIM_P={simP}  Δ={delta}");
+                AppendLog(BuildLogLine(x, y, simP, s6, delta, col, row));
                 return;
             }
             // 매칭 안 되는 줄은 원하면 로그로 뿌리기
@@ -281,6 +301,20 @@ namespace ForceSim.App
                 HeatMin = min;
                 HeatMax = max;
             }
+        }
+        private static string GetProjectRoot()
+        {
+            var dir = new DirectoryInfo(AppDomain.CurrentDomain.BaseDirectory);
+
+            while (dir != null)
+            {
+                if (File.Exists(System.IO.Path.Combine(dir.FullName, "ForceSim.sln")))
+                    return dir.FullName;
+
+                dir = dir.Parent;
+            }
+
+            return AppDomain.CurrentDomain.BaseDirectory;
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
