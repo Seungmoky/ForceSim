@@ -41,6 +41,7 @@ namespace ForceSim.App
         public int GridRows { get; set; }
         private short _heatMin = 0;
         private string _progressText = "Line: 0 / 0";
+        private short[] _lastScaler = new short[6];
         public string ProgressText
         {
             get => _progressText;
@@ -209,6 +210,7 @@ namespace ForceSim.App
             {
                 BtnStop_Click(null, null);
                 AppendLog("[INFO] EOF");
+                AppendLog($"[Scaler] {string.Join(",", _lastScaler)}");
                 UpdateProgressText();
                 return;
             }
@@ -221,6 +223,7 @@ namespace ForceSim.App
             {
                 ForceNative.Force_SetScaler(scaler6);
                 AppendLog($"[Scaler] {string.Join(",", scaler6)}");
+                _lastScaler = (short[])scaler6.Clone();
                 return;
             }
 
