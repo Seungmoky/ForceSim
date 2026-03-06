@@ -60,6 +60,10 @@ internal static class IniReader
 
         s.SpeedSec = ToDouble(Get("speed", "sec", s.SpeedSec.ToString()), s.SpeedSec);
 
+        var debug = Get("debug", "enable", null);
+        if (!string.IsNullOrWhiteSpace(debug))
+            s.Debug = debug.Equals("true", StringComparison.OrdinalIgnoreCase) || debug == "1";
+
         // flipy 옵션까지 넣고 싶으면 setting.conf에 flipY=true 추가해서 사용 가능
         var flip = Get("section", "flipY", null);
         if (!string.IsNullOrWhiteSpace(flip))
