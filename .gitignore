@@ -1,45 +1,42 @@
-# ==============================
-# Ignore everything by default
-# ==============================
-*
-
-# ==============================
-# Allow directories (for traversal)
-# ==============================
-!*/
-
-# ==============================
-# Explicitly ignore Visual Studio artifacts
-# ==============================
-ForceAlgoDll/obj/
-ForceSim.App/obj/
+# Visual Studio / IDE
 .vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.VC.db
+*.VC.VC.opendb
 
-# ==============================
-# Allow only these file types
-# ==============================
-!*.cs
-!*.xaml
-!*.png
-!*.csv
-!*.exe
-!*.sln
-!*.conf
-!*.csproj
-!*.txt
-!*.c
-!*.h
-!*.dll
-!*.user
-!*.filters
-!*.vcxproj
-!*.cpp
-!*.config
-!*.settings
-!*.resx
-!*.md
+# Build outputs
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+ForceAlgoDll/ForceSim.App/
 
-# ==============================
-# Allow gitignore itself
-# ==============================
-!.gitignore
+# C/C++ intermediate files
+*.obj
+*.o
+*.pch
+*.pdb
+*.ilk
+*.idb
+*.ipdb
+*.iobj
+*.exp
+*.lib
+*.tlog
+*.lastbuildstate
+
+# Executables / libraries (generated artifacts)
+*.exe
+*.dll
+
+# Logs and runtime outputs
+logs/
+*.log
+
+# Optional local settings
+*.local
