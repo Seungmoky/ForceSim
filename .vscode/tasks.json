@@ -1,0 +1,31 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build Solution (Debug|x64) - Best Effort",
+      "type": "shell",
+      "command": "${workspaceFolder}\\.vscode\\build_debug_x64_best_effort.cmd",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$msCompile"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Build Solution (Debug|x64) - Strict",
+      "type": "shell",
+      "command": "${workspaceFolder}\\.vscode\\build_debug_x64.cmd",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$msCompile"
+      ]
+    }
+  ]
+}

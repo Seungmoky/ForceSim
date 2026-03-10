@@ -1,0 +1,36 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug ForceConsole (x64 Debug)",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "${workspaceFolder}\\x64\\Debug\\ForceConsole.exe",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Debug ForceSim.App (x64 Debug)",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "${workspaceFolder}\\ForceSim.App\\bin\\x64\\Debug\\ForceSim.App.exe",
+      "cwd": "${workspaceFolder}\\ForceSim.App"
+    },
+    {
+      "name": "Attach ForceSim.App (.NET Framework)",
+      "type": "clr",
+      "request": "attach",
+      "processId": "${command:pickProcess}"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Debug Both (ForceConsole + ForceSim.App, x64)",
+      "configurations": [
+        "Debug ForceConsole (x64 Debug)",
+        "Debug ForceSim.App (x64 Debug)"
+      ],
+      "preLaunchTask": "Build Solution (Debug|x64) - Best Effort",
+      "stopAll": true
+    }
+  ]
+}
