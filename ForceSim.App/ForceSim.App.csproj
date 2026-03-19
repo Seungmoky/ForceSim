@@ -87,6 +87,7 @@
     <Compile Include="BoolToBrushConverter.cs" />
     <Compile Include="CellViewModel.cs" />
     <Compile Include="ForceNative.cs" />
+    <Compile Include="FsdParser.cs" />
     <Compile Include="IniReader.cs" />
     <Compile Include="LogFileItem.cs" />
     <Compile Include="LogParser.cs" />

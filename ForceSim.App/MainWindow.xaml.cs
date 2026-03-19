@@ -28,6 +28,9 @@ namespace ForceSim.App
         private readonly DispatcherTimer _timer = new DispatcherTimer();
         private List<string> _lines = new List<string>();
         private int _lineIndex = 0;
+        private FsdParser.FsdData _fsdData;
+        private int _fsdEntryIndex = 0;
+        private bool _isFsdMode = false;
         private AppSettings _settings = new AppSettings();
         private CellViewModel _hotCell = null;
         private DateTime _hotUntil = DateTime.MinValue;
@@ -62,9 +65,14 @@ namespace ForceSim.App
         public LogFileItem SelectedLogFile
         {
             get => _selectedLogFile;
-            set { _selectedLogFile = value;
+            set
+            {
+                _selectedLogFile = value;
                 _lines = null;
                 _lineIndex = 0;
+                _fsdData = default;
+                _fsdEntryIndex = 0;
+                _isFsdMode = false;
             }
         }
 
@@ -97,10 +105,19 @@ namespace ForceSim.App
         }
         private void UpdateProgressText()
         {
-            int total = (_lines == null) ? 0 : _lines.Count;
+            int total, current;
+            if (_isFsdMode)
+            {
+                total = _fsdData.Entries?.Count ?? 0;
+                current = _fsdEntryIndex;
+            }
+            else
+            {
+                total = (_lines == null) ? 0 : _lines.Count;
+                current = _lineIndex;
+            }
 
             // 사람이 보기 좋게 1-based로 보여주기
-            int current = _lineIndex;
             if (total > 0 && current < 0) current = 0;
             if (total > 0 && current > total) current = total;
 
@@ -128,19 +145,25 @@ namespace ForceSim.App
         private void RefreshLogFileList()
         {
             string root = GetProjectRoot();
-            string dir = System.IO.Path.Combine(root, "logs");
-            Directory.CreateDirectory(dir);
+            string logsDir = System.IO.Path.Combine(root, "logs");
+            Directory.CreateDirectory(logsDir);
 
             LogFiles.Clear();
-            var files = Directory.GetFiles(dir, "*.txt");
-            foreach (var f in files)
-                LogFiles.Add(new LogFileItem(f));
+
+            // .txt 파일 (logs/ 직접)
+            foreach (var f in Directory.GetFiles(logsDir, "*.txt"))
+                LogFiles.Add(new LogFileItem(f, logsDir));
+
+            // .fsd 파일 (logs/ 하위 디렉토리)
+            foreach (var subDir in Directory.GetDirectories(logsDir))
+                foreach (var f in Directory.GetFiles(subDir, "*.fsd"))
+                    LogFiles.Add(new LogFileItem(f, logsDir));
 
             if (LogFiles.Count > 0)
                 SelectedLogFile = LogFiles[0];
 
-            AppendLog($"[INFO] log folder: {dir}");
-            AppendLog($"[INFO] found {LogFiles.Count} txt files");
+            AppendLog($"[INFO] log folder: {logsDir}");
+            AppendLog($"[INFO] found {LogFiles.Count} files (txt+fsd)");
         }
 
         private void BtnRefresh_Click(object sender, System.Windows.RoutedEventArgs e)
@@ -159,16 +182,33 @@ namespace ForceSim.App
                 return;
             }
 
-            if (_lines == null || _lines.Count == 0)
+            _isFsdMode = item.IsFsd;
+
+            if (_isFsdMode)
             {
-                _lines = new List<string>(File.ReadAllLines(path));
-                _lineIndex = 0;
+                if (_fsdData.Entries == null || _fsdData.Entries.Count == 0)
+                {
+                    _fsdData = FsdParser.Parse(path, item.DirName);
+                    _fsdEntryIndex = 0;
+                    ForceNative.Force_SetScaler(_fsdData.Scaler6);
+                    _lastScaler = (short[])_fsdData.Scaler6.Clone();
+                    AppendLog($"[Scaler] {string.Join(",", _fsdData.Scaler6)}");
+                    AppendLog($"[FSD] {_fsdData.Entries.Count} entries / dir={item.DirName}");
+                }
+            }
+            else
+            {
+                if (_lines == null || _lines.Count == 0)
+                {
+                    _lines = new List<string>(File.ReadAllLines(path));
+                    _lineIndex = 0;
+                }
             }
 
             BtnStart.IsEnabled = false;
             BtnStop.IsEnabled = true;
 
-            AppendLog($"[INFO] start: {item.FileName}  lines={_lines.Count}");
+            AppendLog($"[INFO] start: {item.DisplayName}");
             _timer.Start();
             UpdateProgressText();
         }
@@ -188,8 +228,11 @@ namespace ForceSim.App
             InitCells();
             _hotCell = null;
             _hotUntil = DateTime.MinValue;
-            _lines.Clear();
+            _lines?.Clear();
             _lineIndex = 0;
+            _fsdData = default;
+            _fsdEntryIndex = 0;
+            _isFsdMode = false;
 
             BtnStart.IsEnabled = true;
             BtnStop.IsEnabled = false;
@@ -206,6 +249,13 @@ namespace ForceSim.App
                 _hotCell.IsHot = false;
                 _hotCell = null;
             }
+
+            if (_isFsdMode)
+            {
+                Timer_Tick_Fsd();
+                return;
+            }
+
             if (_lineIndex >= _lines.Count)
             {
                 BtnStop_Click(null, null);
@@ -229,50 +279,70 @@ namespace ForceSim.App
 
             if (LogParser.TryParseData(line, out short x, out short y, out var s6, out short fwP))
             {
-                short simP = ForceNative.Force_EstimateWeight(x, y, s6);
-
-                MapToSectionCell(x, y, out int col, out int row);
-
-                short delta = (short)(simP - fwP);
-
-                // 이전 hot 지우기(가장 최근 한 칸만 hot 유지)
-                foreach (var c in _cells)
-                    if (c.IsHot) c.IsHot = false;
-
-                // 해당 셀 갱신
-                int idx = row * _settings.Cols + col;
-                var cell = _cellIndex[idx];
-                // 핫셀 갱신: 같은 셀이 계속 업데이트되면 유지
-                if (!ReferenceEquals(_hotCell, cell))
-                {
-                    if (_hotCell != null) _hotCell.IsHot = false;
-                    _hotCell = cell;
-                }
-                bool needHeatRecalc = false;
-
-                cell.IsHot = true;
-
-                // “변화가 계속 들어오는 동안” 유지 시간을 갱신
-                _hotUntil = DateTime.Now.AddSeconds(Math.Max(_settings.SpeedSec * 3.0, 0.20));
-
-                cell.IsHot = true;
-                cell.Count += 1;
-                // MaxSimP 변경 감지
-                if (simP > cell.MaxSimP)
-                {
-                    cell.MaxSimP = simP;
-                    needHeatRecalc = true;
-                }
-                cell.SimP = simP;
-                cell.Delta = delta;
-
-                if (needHeatRecalc)
-                    RecalcHeatRange();
-                AppendLog(BuildLogLine(x, y, simP, s6, delta, col, row));
+                ApplySimResult(x, y, s6, fwP);
                 return;
             }
             // 매칭 안 되는 줄은 원하면 로그로 뿌리기
             // AppendLog("[SKIP] " + line);
+        }
+
+        private void Timer_Tick_Fsd()
+        {
+            if (_fsdEntryIndex >= _fsdData.Entries.Count)
+            {
+                BtnStop_Click(null, null);
+                AppendLog("[INFO] EOF");
+                AppendLog($"[Scaler] {string.Join(",", _lastScaler)}");
+                UpdateProgressText();
+                return;
+            }
+
+            var entry = _fsdData.Entries[_fsdEntryIndex++];
+            UpdateProgressText();
+            ApplySimResult(entry.X, entry.Y, entry.S6, entry.FwWeight);
+        }
+
+        // Force 계산 → 셀 업데이트 → 로그 출력 공통 처리
+        private void ApplySimResult(short x, short y, short[] s6, short fwP)
+        {
+            short simP = ForceNative.Force_EstimateWeight(x, y, s6);
+            MapToSectionCell(x, y, out int col, out int row);
+            short delta = (short)(simP - fwP);
+
+            // 이전 hot 지우기(가장 최근 한 칸만 hot 유지)
+            foreach (var c in _cells)
+                if (c.IsHot) c.IsHot = false;
+
+            // 해당 셀 갱신
+            int idx = row * _settings.Cols + col;
+            var cell = _cellIndex[idx];
+            // 핫셀 갱신: 같은 셀이 계속 업데이트되면 유지
+            if (!ReferenceEquals(_hotCell, cell))
+            {
+                if (_hotCell != null) _hotCell.IsHot = false;
+                _hotCell = cell;
+            }
+            bool needHeatRecalc = false;
+
+            cell.IsHot = true;
+
+            // "변화가 계속 들어오는 동안" 유지 시간을 갱신
+            _hotUntil = DateTime.Now.AddSeconds(Math.Max(_settings.SpeedSec * 3.0, 0.20));
+
+            cell.IsHot = true;
+            cell.Count += 1;
+            // MaxSimP 변경 감지
+            if (simP > cell.MaxSimP)
+            {
+                cell.MaxSimP = simP;
+                needHeatRecalc = true;
+            }
+            cell.SimP = simP;
+            cell.Delta = delta;
+
+            if (needHeatRecalc)
+                RecalcHeatRange();
+            AppendLog(BuildLogLine(x, y, simP, s6, delta, col, row));
         }
         private void MapToSectionCell(short x, short y, out int col, out int row)
         {
