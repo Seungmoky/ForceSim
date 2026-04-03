@@ -122,17 +122,18 @@ namespace ForceSim.App
             if (string.IsNullOrWhiteSpace(line)) return false;
 
             var parts = line.Split(',');
-            if (parts.Length < 11) return false;
+            if (parts.Length < 9) return false;
 
             // 헤더 행 스킵 (첫 컬럼이 숫자가 아닌 경우)
             if (!int.TryParse(parts[0].Trim(), out weight)) return false;
+            // coord_x, coord_y 를 report 좌표로 사용
+            if (!int.TryParse(parts[1].Trim(), out rx)) return false;
+            if (!int.TryParse(parts[2].Trim(), out ry)) return false;
 
             sa6 = new long[6];
             for (int i = 0; i < 6; i++)
                 if (!long.TryParse(parts[3 + i].Trim(), out sa6[i])) return false;
 
-            if (!int.TryParse(parts[9].Trim(), out rx)) return false;
-            if (!int.TryParse(parts[10].Trim(), out ry)) return false;
             return true;
         }
 

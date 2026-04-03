@@ -89,8 +89,8 @@ void find_fractional_info(s16 coord, const s16 div_array[], int count, int* out_
 
 
 s16 estimate_weight(s16 x_coord, s16 y_coord, s16* sensor_values) {
-#define DEF_WEIGHT_BOUNDARY_LOW_INDEX	1
-#define DEF_WEIGHT_BOUNDARY_HIGH_INDEX	3
+#define DEF_WEIGHT_BOUNDARY_LOW_INDEX	0
+#define DEF_WEIGHT_BOUNDARY_HIGH_INDEX	2
 	/* C89: 모든 변수를 함수 시작 부분에 선언 */
 	int x1_idx, y1_idx;
 	s32 tx_q10, ty_q10;
