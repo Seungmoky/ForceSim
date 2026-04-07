@@ -14,15 +14,18 @@ namespace ForceSim.App
             @"Scaler1:(\d+),Scaler2:(\d+),Scaler3:(\d+),Scaler4:(\d+),Scaler5:(\d+),Scaler6:(\d+)",
             RegexOptions.Compiled);
 
-        private static readonly Regex ReDelta = new Regex(
-            @"Delta1:(-?\d+),Delta2:(-?\d+),Delta3:(-?\d+),Delta4:(-?\d+),Delta5:(-?\d+),Delta6:(-?\d+)",
-            RegexOptions.Compiled);
+        // Sa {Delta1:...,Delta6:...} 형식 — 센서별 6×6 델타 행렬
+        private static readonly Regex ReDeltaRow = new Regex(
+            @"(S[abcdef]) \{Delta1:(-?\d+),Delta2:(-?\d+),Delta3:(-?\d+),Delta4:(-?\d+),Delta5:(-?\d+),Delta6:(-?\d+)\}",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        private static readonly string[] SensorRowNames = { "sa", "sb", "sc", "sd", "se", "sf" };
 
         internal struct FsdData
         {
-            public short[] Scaler6;        // A,B,C,D,E,F 순서로 재정렬된 스케일러
-            public short[] Delta6;         // A,B,C,D,E,F 순서로 재정렬된 델타 (없으면 null)
-            public long[]  Baseline6;      // report_x == -1 행들의 센서값 평균 (원본 순서 그대로)
+            public short[]   Scaler6;      // A,B,C,D,E,F 순서로 재정렬된 스케일러
+            public short[][] Delta6x6;     // [Sa~Sf][A~F] 6×6 델타 행렬 (없으면 null)
+            public long[]    Baseline6;    // report_x == -1 행들의 센서값 평균 (원본 순서 그대로)
             public List<FsdEntry> Entries; // 재생할 데이터 목록 (report_x != -1인 행)
         }
 
@@ -45,8 +48,8 @@ namespace ForceSim.App
 
             // 스케일러 파싱 (순서: C, F, D, A, E, B → A,B,C,D,E,F 재정렬)
             result.Scaler6 = ParseScaler(lines) ?? new short[] { 300, 300, 300, 300, 300, 300 };
-            // 델타 파싱 (스케일러와 동일한 순서 재정렬)
-            result.Delta6 = ParseDelta(lines);
+            // 델타 파싱 (6×6 행렬, 스케일러와 동일한 순서 재정렬)
+            result.Delta6x6 = ParseDelta(lines);
 
             // 데이터 행 수집
             var baselineRows = new List<long[]>();
@@ -124,24 +127,33 @@ namespace ForceSim.App
             return null;
         }
 
-        // Delta1~6 파싱: 순서 C,F,D,A,E,B → A,B,C,D,E,F 재정렬
-        private static short[] ParseDelta(string[] lines)
+        // Delta 파싱: "Sa {Delta1:...,Delta6:...}" 형식 6줄 → 6×6 행렬
+        // 각 행의 Delta1~6 값은 순서 C,F,D,A,E,B → A,B,C,D,E,F 재정렬
+        private static short[][] ParseDelta(string[] lines)
         {
+            var matrix = new short[6][];
+            bool anyFound = false;
+
             foreach (var line in lines)
             {
-                var m = ReDelta.Match(line);
+                var m = ReDeltaRow.Match(line);
                 if (!m.Success) continue;
 
-                var d = new short[6];
-                d[0] = short.Parse(m.Groups[4].Value); // A = Delta4
-                d[1] = short.Parse(m.Groups[6].Value); // B = Delta6
-                d[2] = short.Parse(m.Groups[1].Value); // C = Delta1
-                d[3] = short.Parse(m.Groups[3].Value); // D = Delta3
-                d[4] = short.Parse(m.Groups[5].Value); // E = Delta5
-                d[5] = short.Parse(m.Groups[2].Value); // F = Delta2
-                return d;
+                int rowIdx = Array.IndexOf(SensorRowNames, m.Groups[1].Value.ToLower());
+                if (rowIdx < 0) continue;
+
+                var row = new short[6];
+                row[0] = short.Parse(m.Groups[5].Value); // A = Delta4
+                row[1] = short.Parse(m.Groups[7].Value); // B = Delta6
+                row[2] = short.Parse(m.Groups[2].Value); // C = Delta1
+                row[3] = short.Parse(m.Groups[4].Value); // D = Delta3
+                row[4] = short.Parse(m.Groups[6].Value); // E = Delta5
+                row[5] = short.Parse(m.Groups[3].Value); // F = Delta2
+                matrix[rowIdx] = row;
+                anyFound = true;
             }
-            return null;
+
+            return anyFound ? matrix : null;
         }
 
         // CSV 데이터 행 파싱: weight,coord_x,coord_y,Sa,Sb,Sc,Sd,Se,Sf,report_x,report_y

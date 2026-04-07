@@ -45,7 +45,7 @@ namespace ForceSim.App
         private short _heatMin = 0;
         private string _progressText = "Line: 0 / 0";
         private short[] _lastScaler = new short[6];
-        private short[] _lastDelta = null;
+        private short[][] _lastDelta = null; // [Sa~Sf][A~F] 6×6 행렬 (FSD) 또는 [1][A~F] (TXT)
         private long[]  _lastBaseline = null;
         public string ProgressText
         {
@@ -194,7 +194,7 @@ namespace ForceSim.App
                     _fsdEntryIndex = 0;
                     ForceNative.Force_SetScaler(_fsdData.Scaler6);
                     _lastScaler = (short[])_fsdData.Scaler6.Clone();
-                    _lastDelta = _fsdData.Delta6 != null ? (short[])_fsdData.Delta6.Clone() : null;
+                    _lastDelta = _fsdData.Delta6x6;
                     _lastBaseline = _fsdData.Baseline6 != null ? (long[])_fsdData.Baseline6.Clone() : null;
                     AppendLog($"[Scaler] {string.Join(",", _fsdData.Scaler6)}");
                     AppendLog($"[FSD] {_fsdData.Entries.Count} entries / dir={item.DirName}");
@@ -268,7 +268,7 @@ namespace ForceSim.App
                 AppendLog("[INFO] EOF");
                 AppendLog($"[Scaler] {string.Join(",", _lastScaler)}");
                 if (_lastDelta != null)
-                    AppendLog($"[Delta] {string.Join(",", _lastDelta)}");
+                    AppendLog($"[Delta] {_lastDelta.Length}x6 matrix");
                 UpdateProgressText();
                 return;
             }
@@ -287,7 +287,7 @@ namespace ForceSim.App
 
             if (LogParser.TryParseDelta(line, out var delta6))
             {
-                _lastDelta = (short[])delta6.Clone();
+                _lastDelta = new short[][] { delta6 };
                 return;
             }
 
@@ -308,7 +308,7 @@ namespace ForceSim.App
                 AppendLog("[INFO] EOF");
                 AppendLog($"[Scaler] {string.Join(",", _lastScaler)}");
                 if (_lastDelta != null)
-                    AppendLog($"[Delta] {string.Join(",", _lastDelta)}");
+                    AppendLog($"[Delta] {_lastDelta.Length}x6 matrix");
                 UpdateProgressText();
                 return;
             }
@@ -358,7 +358,7 @@ namespace ForceSim.App
 
             if (needHeatRecalc)
                 RecalcHeatRange();
-            AppendLog(BuildLogLine(x, y, simP, s6, delta, col, row));
+            // AppendLog(BuildLogLine(x, y, simP, s6, delta, col, row));
         }
         private void MapToSectionCell(short x, short y, out int col, out int row)
         {
@@ -450,12 +450,22 @@ namespace ForceSim.App
             sb.AppendLine("scaler_Sa\tscaler_Sb\tscaler_Sc\tscaler_Sd\tscaler_Se\tscaler_Sf");
             sb.AppendLine(string.Join("\t", _lastScaler));
 
-            // Delta
-            sb.AppendLine("delta_Sa\tdelta_Sb\tdelta_Sc\tdelta_Sd\tdelta_Se\tdelta_Sf");
+            // Delta 6×6 행렬
+            sb.AppendLine("\tdelta_Sa\tdelta_Sb\tdelta_Sc\tdelta_Sd\tdelta_Se\tdelta_Sf");
             if (_lastDelta != null)
-                sb.AppendLine(string.Join("\t", _lastDelta));
+            {
+                string[] rowLabels = { "Sa", "Sb", "Sc", "Sd", "Se", "Sf" };
+                for (int i = 0; i < _lastDelta.Length; i++)
+                {
+                    sb.Append(i < rowLabels.Length ? rowLabels[i] : $"S{i}");
+                    sb.Append('\t');
+                    sb.AppendLine(_lastDelta[i] != null ? string.Join("\t", _lastDelta[i]) : "");
+                }
+            }
             else
+            {
                 sb.AppendLine();
+            }
 
             sb.AppendLine();
 
@@ -472,8 +482,21 @@ namespace ForceSim.App
                 sb.AppendLine();
             }
 
-            System.Windows.Clipboard.SetText(sb.ToString());
-            AppendLog($"[INFO] 그리드 복사 완료 ({cols}x{rows})");
+            string text = sb.ToString();
+            for (int retry = 0; retry < 5; retry++)
+            {
+                try
+                {
+                    System.Windows.Clipboard.SetText(text);
+                    AppendLog($"[INFO] 그리드 복사 완료 ({cols}x{rows})");
+                    return;
+                }
+                catch (System.Runtime.InteropServices.COMException)
+                {
+                    System.Threading.Thread.Sleep(50);
+                }
+            }
+            AppendLog("[ERR] 클립보드 복사 실패 (다른 프로세스 점유 중)");
         }
 
         public event PropertyChangedEventHandler PropertyChanged;

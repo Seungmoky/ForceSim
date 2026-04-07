@@ -1,4 +1,4 @@
-#include "Config.h"
+ï»¿#include "Config.h"
 #include "Force_Rawdata_point_18by13.h"
 #define DEF_SENSOR_CNT SUPPORT_FORCE_BUTTON_NODE
 #if(DEF_USE_TEST_NORMALIZE_OPTION)
@@ -58,7 +58,7 @@ s16 cubic_interpolate_fixed(s16 p[4], s32 t_q10) {
 }
 
 void find_fractional_info(s16 coord, const s16 div_array[], int count, int* out_idx, s32* out_t_q10) {
-	int i; /* C89: º¯¼ö ¼±¾ðÀº ÇÔ¼ö ½ÃÀÛ ºÎºÐ¿¡¼­ */
+	int i; /* C89: ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ô¼ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ÎºÐ¿ï¿½ï¿½ï¿½ */
 	s32 diff;
 
 	if (coord <= div_array[0]) {
@@ -89,67 +89,45 @@ void find_fractional_info(s16 coord, const s16 div_array[], int count, int* out_
 
 
 s16 estimate_weight(s16 x_coord, s16 y_coord, s16* sensor_values) {
-#define DEF_WEIGHT_BOUNDARY_LOW_INDEX	0
-#define DEF_WEIGHT_BOUNDARY_HIGH_INDEX	2
-	/* C89: ¸ðµç º¯¼ö¸¦ ÇÔ¼ö ½ÃÀÛ ºÎºÐ¿¡ ¼±¾ð */
+	/* C89 í˜¸í™˜: ëª¨ë“  ë³€ìˆ˜ëŠ” í•¨ìˆ˜ ì‹œìž‘ì— ì„ ì–¸ */
 	int x1_idx, y1_idx;
 	s32 tx_q10, ty_q10;
-	int w_idx, s_idx, i, j;
+	int s_idx, i, j;
 	s16 control_points[4][4];
 	int y_ctrl_idx, x_ctrl_idx, zone_idx;
 	s16 p_interp_y[4];
-	float error;
-	s16 final_weight;
-
-	struct _point coord_0[DEF_SENSOR_CNT];
-	struct _point coord_1[DEF_SENSOR_CNT];
+	s16 w_q8;
+	s32 result;
 
 	find_fractional_info(x_coord, x_divide, DEF_ZONE_X_CNT, &x1_idx, &tx_q10);
 	find_fractional_info(y_coord, y_divide, DEF_ZONE_Y_CNT, &y1_idx, &ty_q10);
 
-	for (w_idx = 0; w_idx < DEF_WEIGHT_CNT; ++w_idx) {
-		if ((w_idx == DEF_WEIGHT_BOUNDARY_LOW_INDEX) || (w_idx == DEF_WEIGHT_BOUNDARY_HIGH_INDEX))
-		{
-			for (s_idx = 0; s_idx < DEF_SENSOR_CNT; ++s_idx) {
-				for (i = 0; i < 4; ++i) {
-					y_ctrl_idx = ztCLIP(y1_idx - 1 + i, 0, DEF_ZONE_Y_CNT - 1);
-					for (j = 0; j < 4; ++j) {
-						x_ctrl_idx = ztCLIP(x1_idx - 1 + j, 0, DEF_ZONE_X_CNT - 1);
-						zone_idx = (y_ctrl_idx * DEF_ZONE_X_CNT + x_ctrl_idx) * DEF_WEIGHT_CNT + w_idx;
-#if(DEF_USE_TEST_NORMALIZE_OPTION)
-						if (var_Test_Normalize)
-							control_points[i][j] = FSR_Zone[zone_idx][s_idx];
-						else
-							control_points[i][j] = FSR_Zone[zone_idx][s_idx] * var_scaler[s_idx] / 300;
-#else
-#if(DEF_USE_RAWDATA_NORMALIZE)
-						control_points[i][j] = FSR_Zone[zone_idx][s_idx];
-#else
-						control_points[i][j] = FSR_Zone[zone_idx][s_idx] * var_scaler[s_idx] / 300;
-#endif
-#endif
-					}
-				}
-
-				for (i = 0; i < 4; ++i) {
-					p_interp_y[i] = cubic_interpolate_fixed(control_points[i], tx_q10);
-				}
-
-				if (w_idx == DEF_WEIGHT_BOUNDARY_LOW_INDEX)
-				{
-					coord_0[s_idx].y = cubic_interpolate_fixed(p_interp_y, ty_q10);
-					coord_0[s_idx].x = FSR_Weight_Items[w_idx];
-				}
-				else
-				{
-					coord_1[s_idx].y = cubic_interpolate_fixed(p_interp_y, ty_q10);
-					coord_1[s_idx].x = FSR_Weight_Items[w_idx];
-				}
+	result = 0;
+	for (s_idx = 0; s_idx < DEF_SENSOR_CNT; ++s_idx) {
+		/* 4Ã—4 ì œì–´ì  êµ¬ì„±: FSR_Zoneì˜ Q8 ê°€ì¤‘ì¹˜ */
+		for (i = 0; i < 4; ++i) {
+			y_ctrl_idx = ztCLIP(y1_idx - 1 + i, 0, DEF_ZONE_Y_CNT - 1);
+			for (j = 0; j < 4; ++j) {
+				x_ctrl_idx = ztCLIP(x1_idx - 1 + j, 0, DEF_ZONE_X_CNT - 1);
+				zone_idx = y_ctrl_idx * DEF_ZONE_X_CNT + x_ctrl_idx;
+				control_points[i][j] = FSR_Zone[zone_idx][s_idx];
 			}
+		}
+
+		/* x ë°©í–¥ cubic ë³´ê°„ */
+		for (i = 0; i < 4; ++i) {
+			p_interp_y[i] = cubic_interpolate_fixed(control_points[i], tx_q10);
+		}
+
+		/* y ë°©í–¥ cubic ë³´ê°„ â†’ Q8 ê°€ì¤‘ì¹˜ */
+		w_q8 = cubic_interpolate_fixed(p_interp_y, ty_q10);
+
+		/* ì¶”ì • ë¬´ê²Œ ëˆ„ì : sensor * 150 / var_scaler * w_q8 */
+		if (var_scaler[s_idx] != 0) {
+			result += (s32)sensor_values[s_idx] * 150 / var_scaler[s_idx] * (s32)w_q8;
 		}
 	}
 
-	final_weight = Solve_Linear_ls_Weight(coord_0, coord_1, sensor_values, DEF_SENSOR_CNT, &error);
-
-	return final_weight;
+	/* Q8 >> 8 */
+	return (s16)(result >> 8);
 }
