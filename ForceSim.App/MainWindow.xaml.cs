@@ -46,6 +46,7 @@ namespace ForceSim.App
         private string _progressText = "Line: 0 / 0";
         private short[] _lastScaler = new short[6];
         private short[] _lastDelta = null;
+        private long[]  _lastBaseline = null;
         public string ProgressText
         {
             get => _progressText;
@@ -194,6 +195,7 @@ namespace ForceSim.App
                     ForceNative.Force_SetScaler(_fsdData.Scaler6);
                     _lastScaler = (short[])_fsdData.Scaler6.Clone();
                     _lastDelta = _fsdData.Delta6 != null ? (short[])_fsdData.Delta6.Clone() : null;
+                    _lastBaseline = _fsdData.Baseline6 != null ? (long[])_fsdData.Baseline6.Clone() : null;
                     AppendLog($"[Scaler] {string.Join(",", _fsdData.Scaler6)}");
                     AppendLog($"[FSD] {_fsdData.Entries.Count} entries / dir={item.DirName}");
                 }
@@ -236,6 +238,7 @@ namespace ForceSim.App
             _fsdEntryIndex = 0;
             _isFsdMode = false;
             _lastDelta = null;
+            _lastBaseline = null;
 
             BtnStart.IsEnabled = true;
             BtnStop.IsEnabled = false;
@@ -429,6 +432,48 @@ namespace ForceSim.App
             }
 
             return AppDomain.CurrentDomain.BaseDirectory;
+        }
+
+        private void MenuCopyGrid_Click(object sender, System.Windows.RoutedEventArgs e)
+        {
+            int cols = _settings.Cols;
+            int rows = _settings.Rows;
+            var sb = new System.Text.StringBuilder();
+            // Baseline
+            sb.AppendLine("baseline_Sa\tbaseline_Sb\tbaseline_Sc\tbaseline_Sd\tbaseline_Se\tbaseline_Sf");
+            if (_lastBaseline != null)
+                sb.AppendLine(string.Join("\t", _lastBaseline));
+            else
+                sb.AppendLine();
+
+            // Scaler
+            sb.AppendLine("scaler_Sa\tscaler_Sb\tscaler_Sc\tscaler_Sd\tscaler_Se\tscaler_Sf");
+            sb.AppendLine(string.Join("\t", _lastScaler));
+
+            // Delta
+            sb.AppendLine("delta_Sa\tdelta_Sb\tdelta_Sc\tdelta_Sd\tdelta_Se\tdelta_Sf");
+            if (_lastDelta != null)
+                sb.AppendLine(string.Join("\t", _lastDelta));
+            else
+                sb.AppendLine();
+
+            sb.AppendLine();
+
+            // 그리드 (rows x cols TSV)
+            for (int r = 0; r < rows; r++)
+            {
+                for (int c = 0; c < cols; c++)
+                {
+                    var cell = _cellIndex[r * cols + c];
+                    if (c > 0) sb.Append('\t');
+                    if (cell.Count > 0)
+                        sb.Append(cell.MaxSimP);
+                }
+                sb.AppendLine();
+            }
+
+            System.Windows.Clipboard.SetText(sb.ToString());
+            AppendLog($"[INFO] 그리드 복사 완료 ({cols}x{rows})");
         }
 
         public event PropertyChangedEventHandler PropertyChanged;

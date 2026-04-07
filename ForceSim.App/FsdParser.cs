@@ -22,6 +22,7 @@ namespace ForceSim.App
         {
             public short[] Scaler6;        // A,B,C,D,E,F 순서로 재정렬된 스케일러
             public short[] Delta6;         // A,B,C,D,E,F 순서로 재정렬된 델타 (없으면 null)
+            public long[]  Baseline6;      // report_x == -1 행들의 센서값 평균 (원본 순서 그대로)
             public List<FsdEntry> Entries; // 재생할 데이터 목록 (report_x != -1인 행)
         }
 
@@ -72,6 +73,7 @@ namespace ForceSim.App
                 for (int i = 0; i < 6; i++)
                     baseline[i] /= baselineRows.Count;
             }
+            result.Baseline6 = baseline;
 
             // dir 이름으로 연산 방향 결정
             // self 또는 smutual 포함 → rawData - baseline

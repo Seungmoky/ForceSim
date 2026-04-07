@@ -53,6 +53,11 @@
 
         <!-- Table (top) -->
         <Border Grid.Row="1" BorderBrush="Gray" BorderThickness="1" Padding="6">
+            <Border.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="표 복사 (MaxSimP)" Click="MenuCopyGrid_Click"/>
+                </ContextMenu>
+            </Border.ContextMenu>
             <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
                 <ItemsControl x:Name="CellsView" ItemsSource="{Binding Cells}">
                     <ItemsControl.ItemsPanel>
