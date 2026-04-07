@@ -118,7 +118,16 @@
 
         <!-- Log (bottom, last 5 lines) -->
         <GroupBox Grid.Row="2" Height="120" Header="Real-time Log (last 5 lines)" Margin="0,8,0,0">
-            <ListBox ItemsSource="{Binding LogLines}" FontFamily="Consolas" />
+            <ListBox ItemsSource="{Binding LogLines}" FontFamily="Consolas">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBox Text="{Binding Mode=OneWay}" IsReadOnly="True"
+                                 BorderThickness="0" Background="Transparent"
+                                 FontFamily="Consolas" Padding="0"
+                                 IsTabStop="False"/>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
         </GroupBox>
     </Grid>
 </Window>

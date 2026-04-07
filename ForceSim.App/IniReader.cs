@@ -64,6 +64,10 @@ internal static class IniReader
         if (!string.IsNullOrWhiteSpace(debug))
             s.Debug = debug.Equals("true", StringComparison.OrdinalIgnoreCase) || debug == "1";
 
+        var extDll = Get("debug", "external_dll", null);
+        if (!string.IsNullOrWhiteSpace(extDll))
+            s.UseExternalDll = extDll.Equals("true", StringComparison.OrdinalIgnoreCase) || extDll == "1";
+
         // flipy 옵션까지 넣고 싶으면 setting.conf에 flipY=true 추가해서 사용 가능
         var flip = Get("section", "flipY", null);
         if (!string.IsNullOrWhiteSpace(flip))

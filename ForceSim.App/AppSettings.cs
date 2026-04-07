@@ -11,5 +11,6 @@
     // 필요하면 y축 뒤집기 옵션도 추가 가능
     public bool FlipY { get; set; } = true;
     public bool Debug { get; set; } = false;
+    public bool UseExternalDll { get; set; } = false;
 
 }

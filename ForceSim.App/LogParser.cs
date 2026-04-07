@@ -7,6 +7,10 @@ internal static class LogParser
         @"Scaler1:(\d+),Scaler2:(\d+),Scaler3:(\d+),Scaler4:(\d+),Scaler5:(\d+),Scaler6:(\d+)",
         RegexOptions.Compiled);
 
+    private static readonly Regex ReDelta = new Regex(
+        @"Delta1:(\d+),Delta2:(\d+),Delta3:(\d+),Delta4:(\d+),Delta5:(\d+),Delta6:(\d+)",
+        RegexOptions.Compiled);
+
     private static readonly Regex ReData = new Regex(
         @"X:(\d+),Y:(\d+),S1=(-?\d+),S2=(-?\d+),S3=(-?\d+),S4=(-?\d+),S5=(-?\d+),S6=(-?\d+),P:(-?\d+)",
         RegexOptions.Compiled);
@@ -29,6 +33,17 @@ internal static class LogParser
         //scaler6[4] = short.Parse(m.Groups[5].Value);
         //scaler6[5] = short.Parse(m.Groups[2].Value);
 
+        return true;
+    }
+
+    internal static bool TryParseDelta(string line, out short[] delta6)
+    {
+        delta6 = null;
+        var m = ReDelta.Match(line);
+        if (!m.Success) return false;
+        delta6 = new short[6];
+        for (int i = 0; i < 6; i++)
+            delta6[i] = short.Parse(m.Groups[i + 1].Value);
         return true;
     }
 

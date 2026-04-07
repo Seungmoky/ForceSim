@@ -14,9 +14,14 @@ namespace ForceSim.App
             @"Scaler1:(\d+),Scaler2:(\d+),Scaler3:(\d+),Scaler4:(\d+),Scaler5:(\d+),Scaler6:(\d+)",
             RegexOptions.Compiled);
 
+        private static readonly Regex ReDelta = new Regex(
+            @"Delta1:(-?\d+),Delta2:(-?\d+),Delta3:(-?\d+),Delta4:(-?\d+),Delta5:(-?\d+),Delta6:(-?\d+)",
+            RegexOptions.Compiled);
+
         internal struct FsdData
         {
             public short[] Scaler6;        // A,B,C,D,E,F 순서로 재정렬된 스케일러
+            public short[] Delta6;         // A,B,C,D,E,F 순서로 재정렬된 델타 (없으면 null)
             public List<FsdEntry> Entries; // 재생할 데이터 목록 (report_x != -1인 행)
         }
 
@@ -39,6 +44,8 @@ namespace ForceSim.App
 
             // 스케일러 파싱 (순서: C, F, D, A, E, B → A,B,C,D,E,F 재정렬)
             result.Scaler6 = ParseScaler(lines) ?? new short[] { 300, 300, 300, 300, 300, 300 };
+            // 델타 파싱 (스케일러와 동일한 순서 재정렬)
+            result.Delta6 = ParseDelta(lines);
 
             // 데이터 행 수집
             var baselineRows = new List<long[]>();
@@ -111,6 +118,26 @@ namespace ForceSim.App
                 s[4] = short.Parse(m.Groups[5].Value); // E = Scaler5
                 s[5] = short.Parse(m.Groups[2].Value); // F = Scaler2
                 return s;
+            }
+            return null;
+        }
+
+        // Delta1~6 파싱: 순서 C,F,D,A,E,B → A,B,C,D,E,F 재정렬
+        private static short[] ParseDelta(string[] lines)
+        {
+            foreach (var line in lines)
+            {
+                var m = ReDelta.Match(line);
+                if (!m.Success) continue;
+
+                var d = new short[6];
+                d[0] = short.Parse(m.Groups[4].Value); // A = Delta4
+                d[1] = short.Parse(m.Groups[6].Value); // B = Delta6
+                d[2] = short.Parse(m.Groups[1].Value); // C = Delta1
+                d[3] = short.Parse(m.Groups[3].Value); // D = Delta3
+                d[4] = short.Parse(m.Groups[5].Value); // E = Delta5
+                d[5] = short.Parse(m.Groups[2].Value); // F = Delta2
+                return d;
             }
             return null;
         }

@@ -45,6 +45,7 @@ namespace ForceSim.App
         private short _heatMin = 0;
         private string _progressText = "Line: 0 / 0";
         private short[] _lastScaler = new short[6];
+        private short[] _lastDelta = null;
         public string ProgressText
         {
             get => _progressText;
@@ -192,6 +193,7 @@ namespace ForceSim.App
                     _fsdEntryIndex = 0;
                     ForceNative.Force_SetScaler(_fsdData.Scaler6);
                     _lastScaler = (short[])_fsdData.Scaler6.Clone();
+                    _lastDelta = _fsdData.Delta6 != null ? (short[])_fsdData.Delta6.Clone() : null;
                     AppendLog($"[Scaler] {string.Join(",", _fsdData.Scaler6)}");
                     AppendLog($"[FSD] {_fsdData.Entries.Count} entries / dir={item.DirName}");
                 }
@@ -233,6 +235,7 @@ namespace ForceSim.App
             _fsdData = default;
             _fsdEntryIndex = 0;
             _isFsdMode = false;
+            _lastDelta = null;
 
             BtnStart.IsEnabled = true;
             BtnStop.IsEnabled = false;
@@ -261,6 +264,8 @@ namespace ForceSim.App
                 BtnStop_Click(null, null);
                 AppendLog("[INFO] EOF");
                 AppendLog($"[Scaler] {string.Join(",", _lastScaler)}");
+                if (_lastDelta != null)
+                    AppendLog($"[Delta] {string.Join(",", _lastDelta)}");
                 UpdateProgressText();
                 return;
             }
@@ -274,6 +279,12 @@ namespace ForceSim.App
                 ForceNative.Force_SetScaler(scaler6);
                 AppendLog($"[Scaler] {string.Join(",", scaler6)}");
                 _lastScaler = (short[])scaler6.Clone();
+                return;
+            }
+
+            if (LogParser.TryParseDelta(line, out var delta6))
+            {
+                _lastDelta = (short[])delta6.Clone();
                 return;
             }
 
@@ -293,6 +304,8 @@ namespace ForceSim.App
                 BtnStop_Click(null, null);
                 AppendLog("[INFO] EOF");
                 AppendLog($"[Scaler] {string.Join(",", _lastScaler)}");
+                if (_lastDelta != null)
+                    AppendLog($"[Delta] {string.Join(",", _lastDelta)}");
                 UpdateProgressText();
                 return;
             }
