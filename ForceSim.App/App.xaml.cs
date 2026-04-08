@@ -28,13 +28,13 @@ namespace ForceSim.App
                 return;
             }
 
-            // external_dll=1 이면 x64/Debug/libforce.dll 을 직접 로드 (복사 없음)
-            if (settings.UseExternalDll)
+            // external_dll=foo.dll 이면 x64/Debug/foo.dll 을 직접 로드 (복사 없음)
+            if (!string.IsNullOrWhiteSpace(settings.ExternalDllName))
             {
-                string libPath = System.IO.Path.Combine(root, "x64", "Debug", "libforce.dll");
+                string libPath = System.IO.Path.Combine(root, "x64", "Debug", settings.ExternalDllName);
                 if (System.IO.File.Exists(libPath))
                     ForceNative.Initialize(libPath);
-                // libforce.dll 없으면 기본 ForceAlgoDll.dll 사용
+                // 파일이 없으면 기본 ForceAlgoDll.dll 사용
             }
 
             var mainWindow = new MainWindow();

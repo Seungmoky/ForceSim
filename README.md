@@ -57,17 +57,35 @@ rows=12
 
 [speed]
 sec=0.02
+
+[debug]
+enable=0
+log_file=log.txt
+external_dll=
 ```
 
 설정 설명:
 
-| 항목                | 설명         |
-| ----------------- | ---------- |
-| `touchpad.width`  | 터치패드 X 해상도 |
-| `touchpad.height` | 터치패드 Y 해상도 |
-| `section.cols`    | 표 X 분할 수   |
-| `section.rows`    | 표 Y 분할 수   |
-| `speed.sec`       | 로그 재생 속도   |
+| 항목                    | 설명                                              |
+| --------------------- | ----------------------------------------------- |
+| `touchpad.width`      | 터치패드 X 해상도                                      |
+| `touchpad.height`     | 터치패드 Y 해상도                                      |
+| `section.cols`        | 표 X 분할 수                                        |
+| `section.rows`        | 표 Y 분할 수                                        |
+| `speed.sec`           | 로그 재생 속도                                        |
+| `debug.enable`        | `1`: 디버그 모드 (ForceConsole 사용), `0`: 시뮬레이터 실행    |
+| `debug.log_file`      | 디버그 모드에서 사용할 로그 파일 (`logs/` 기준)                 |
+| `debug.external_dll`  | 비어 있으면 기본 `ForceAlgoDll.dll` 사용. 파일명 입력 시 `x64/Debug/<파일명>`을 직접 로드 |
+
+`external_dll` 사용 예시:
+
+```ini
+# 기본값 — ForceAlgoDll 프로젝트 빌드 결과물 사용
+external_dll=
+
+# x64/Debug/libforce.dll 을 직접 로드 (빌드 없이 외부 DLL 교체 가능)
+external_dll=libforce.dll
+```
 
 ---
 
