@@ -45,6 +45,7 @@ namespace ForceSim.App
         private short _heatMin = 0;
         private string _progressText = "Line: 0 / 0";
         private short[] _lastScaler = new short[6];
+        private short[] _lastIntercept = new short[6]; // 각 센서 Intercept (A,B,C,D,E,F 순서)
         private short[][] _lastDelta = null; // [Sa~Sf][A~F] 6×6 행렬 (FSD) 또는 [1][A~F] (TXT)
         private long[]  _lastBaseline = null;
         public string ProgressText
@@ -194,9 +195,11 @@ namespace ForceSim.App
                     _fsdEntryIndex = 0;
                     ForceNative.Force_SetScaler(_fsdData.Scaler6);
                     _lastScaler = (short[])_fsdData.Scaler6.Clone();
+                    _lastIntercept = (short[])_fsdData.Intercept6.Clone();
                     _lastDelta = _fsdData.Delta6x6;
                     _lastBaseline = _fsdData.Baseline6 != null ? (long[])_fsdData.Baseline6.Clone() : null;
                     AppendLog($"[Scaler] {string.Join(",", _fsdData.Scaler6)}");
+                    AppendLog($"[Intercept] {string.Join(",", _fsdData.Intercept6)}");
                     AppendLog($"[FSD] {_fsdData.Entries.Count} entries / dir={item.DirName}");
                 }
             }
@@ -237,6 +240,7 @@ namespace ForceSim.App
             _fsdData = default;
             _fsdEntryIndex = 0;
             _isFsdMode = false;
+            _lastIntercept = new short[6];
             _lastDelta = null;
             _lastBaseline = null;
 
@@ -285,6 +289,13 @@ namespace ForceSim.App
                 return;
             }
 
+            if (LogParser.TryParseIntercept(line, out var intercept6))
+            {
+                AppendLog($"[Intercept] {string.Join(",", intercept6)}");
+                _lastIntercept = (short[])intercept6.Clone();
+                return;
+            }
+
             if (LogParser.TryParseDelta(line, out var delta6))
             {
                 _lastDelta = new short[][] { delta6 };
@@ -321,7 +332,16 @@ namespace ForceSim.App
         // Force 계산 → 셀 업데이트 → 로그 출력 공통 처리
         private void ApplySimResult(short x, short y, short[] s6, short fwP)
         {
-            short simP = ForceNative.Force_EstimateWeight(x, y, s6);
+            // DLL 호출 전 각 센서 strength에서 Intercept 차감
+            var s6Adj = new short[6];
+            for (int i = 0; i < 6; i++)
+            {
+                long val = (long)s6[i] - _lastIntercept[i];
+                val = val < 0 ? 0 : val;
+                val = Math.Max(short.MinValue, Math.Min(short.MaxValue, val));
+                s6Adj[i] = (short)val;
+            }
+            short simP = ForceNative.Force_EstimateWeight(x, y, s6Adj);
             MapToSectionCell(x, y, out int col, out int row);
             short delta = (short)(simP - fwP);
 

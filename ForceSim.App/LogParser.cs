@@ -11,6 +11,10 @@ internal static class LogParser
         @"Delta1:(\d+),Delta2:(\d+),Delta3:(\d+),Delta4:(\d+),Delta5:(\d+),Delta6:(\d+)",
         RegexOptions.Compiled);
 
+    private static readonly Regex ReIntercept = new Regex(
+        @"Intercept1:(-?\d+),Intercept2:(-?\d+),Intercept3:(-?\d+),Intercept4:(-?\d+),Intercept5:(-?\d+),Intercept6:(-?\d+)",
+        RegexOptions.Compiled);
+
     private static readonly Regex ReData = new Regex(
         @"X:(\d+),Y:(\d+),S1=(-?\d+),S2=(-?\d+),S3=(-?\d+),S4=(-?\d+),S5=(-?\d+),S6=(-?\d+),P:(-?\d+)",
         RegexOptions.Compiled);
@@ -33,6 +37,18 @@ internal static class LogParser
         //scaler6[4] = short.Parse(m.Groups[5].Value);
         //scaler6[5] = short.Parse(m.Groups[2].Value);
 
+        return true;
+    }
+
+    internal static bool TryParseIntercept(string line, out short[] intercept6)
+    {
+        intercept6 = null;
+        var m = ReIntercept.Match(line);
+        if (!m.Success) return false;
+        intercept6 = new short[6];
+        // TXT 로그 순서: Intercept1~6 = A,B,C,D,E,F 직접 매핑
+        for (int i = 0; i < 6; i++)
+            intercept6[i] = short.Parse(m.Groups[i + 1].Value);
         return true;
     }
 

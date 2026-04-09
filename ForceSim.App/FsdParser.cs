@@ -14,6 +14,10 @@ namespace ForceSim.App
             @"Scaler1:(\d+),Scaler2:(\d+),Scaler3:(\d+),Scaler4:(\d+),Scaler5:(\d+),Scaler6:(\d+)",
             RegexOptions.Compiled);
 
+        private static readonly Regex ReIntercept = new Regex(
+            @"Intercept1:(-?\d+),Intercept2:(-?\d+),Intercept3:(-?\d+),Intercept4:(-?\d+),Intercept5:(-?\d+),Intercept6:(-?\d+)",
+            RegexOptions.Compiled);
+
         // Sa {Delta1:...,Delta6:...} 형식 — 센서별 6×6 델타 행렬
         private static readonly Regex ReDeltaRow = new Regex(
             @"(S[abcdef]) \{Delta1:(-?\d+),Delta2:(-?\d+),Delta3:(-?\d+),Delta4:(-?\d+),Delta5:(-?\d+),Delta6:(-?\d+)\}",
@@ -24,6 +28,7 @@ namespace ForceSim.App
         internal struct FsdData
         {
             public short[]   Scaler6;      // A,B,C,D,E,F 순서로 재정렬된 스케일러
+            public short[]   Intercept6;      // A,B,C,D,E,F 순서로 재정렬된 절편값
             public short[][] Delta6x6;     // [Sa~Sf][A~F] 6×6 델타 행렬 (없으면 null)
             public long[]    Baseline6;    // report_x == -1 행들의 센서값 평균 (원본 순서 그대로)
             public List<FsdEntry> Entries; // 재생할 데이터 목록 (report_x != -1인 행)
@@ -48,6 +53,7 @@ namespace ForceSim.App
 
             // 스케일러 파싱 (순서: C, F, D, A, E, B → A,B,C,D,E,F 재정렬)
             result.Scaler6 = ParseScaler(lines) ?? new short[] { 300, 300, 300, 300, 300, 300 };
+            result.Intercept6 = ParseIntercept(lines) ?? new short[] { 0, 0, 0, 0, 0, 0 };
             // 델타 파싱 (6×6 행렬, 스케일러와 동일한 순서 재정렬)
             result.Delta6x6 = ParseDelta(lines);
 
@@ -122,6 +128,26 @@ namespace ForceSim.App
                 s[3] = short.Parse(m.Groups[3].Value); // D = Scaler3
                 s[4] = short.Parse(m.Groups[5].Value); // E = Scaler5
                 s[5] = short.Parse(m.Groups[2].Value); // F = Scaler2
+                return s;
+            }
+            return null;
+        }
+
+        // Intercept1~6 파싱: 순서 C,F,D,A,E,B → A,B,C,D,E,F 재정렬
+        private static short[] ParseIntercept(string[] lines)
+        {
+            foreach (var line in lines)
+            {
+                var m = ReIntercept.Match(line);
+                if (!m.Success) continue;
+
+                var s = new short[6];
+                s[0] = short.Parse(m.Groups[4].Value); // A = Intercept4
+                s[1] = short.Parse(m.Groups[6].Value); // B = Intercept6
+                s[2] = short.Parse(m.Groups[1].Value); // C = Intercept1
+                s[3] = short.Parse(m.Groups[3].Value); // D = Intercept3
+                s[4] = short.Parse(m.Groups[5].Value); // E = Intercept5
+                s[5] = short.Parse(m.Groups[2].Value); // F = Intercept2
                 return s;
             }
             return null;
