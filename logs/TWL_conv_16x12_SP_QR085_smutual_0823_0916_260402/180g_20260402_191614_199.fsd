@@ -1,6 +1,11 @@
 Start Time : 04-02 19:03:05
 Scaler1:197,Scaler2:424,Scaler3:192,Scaler4:179,Scaler5:413,Scaler6:178
-Delta1:197,Delta2:424,Delta3:192,Delta4:179,Delta5:413,Delta6:178
+180g Sa {Delta1:41,Delta2:-1,Delta3:1,Delta4:223,Delta5:20,Delta6:2}
+180g Sb {Delta1:-4,Delta2:-7,Delta3:38,Delta4:-2,Delta5:13,Delta6:219}
+180g Sc {Delta1:242,Delta2:33,Delta3:1,Delta4:51,Delta5:-6,Delta6:11}
+180g Sd {Delta1:0,Delta2:18,Delta3:250,Delta4:-5,Delta5:-8,Delta6:49}
+180g Se {Delta1:-19,Delta2:113,Delta3:-13,Delta4:4,Delta5:459,Delta6:3}
+180g Sf {Delta1:17,Delta2:474,Delta3:-9,Delta4:-9,Delta5:110,Delta6:-4}
 weight,coord_x(teaching),coord_y(teaching),Sa(u16),Sb(u16),Sc(u16),Sd(u16),Se(u16),Sf(u16),report_x,report_y
 0,-1,-1,18570,18164,17985,18412,15733,9944,-1,-1
 0,-1,-1,18568,18169,17980,18412,15737,9943,-1,-1
