@@ -47,6 +47,10 @@ namespace ForceSim.App
         private short[] _lastScaler = new short[6];
         private short[][] _lastDelta = null; // [Sa~Sf][A~F] 6×6 행렬 (FSD) 또는 [1][A~F] (TXT)
         private long[]  _lastBaseline = null;
+        private readonly List<string> _csvBuffer = new List<string>();
+        private string _csvInputFilePath = "";
+        private DateTime _csvStartTime;
+        private int _csvRowIndex = 0;
         public string ProgressText
         {
             get => _progressText;
@@ -198,6 +202,7 @@ namespace ForceSim.App
                     _lastBaseline = _fsdData.Baseline6 != null ? (long[])_fsdData.Baseline6.Clone() : null;
                     AppendLog($"[Scaler] {string.Join(",", _fsdData.Scaler6)}");
                     AppendLog($"[FSD] {_fsdData.Entries.Count} entries / dir={item.DirName}");
+                    InitCsvBuffer(path);
                 }
             }
             else
@@ -206,6 +211,7 @@ namespace ForceSim.App
                 {
                     _lines = new List<string>(File.ReadAllLines(path));
                     _lineIndex = 0;
+                    InitCsvBuffer(path);
                 }
             }
 
@@ -243,6 +249,8 @@ namespace ForceSim.App
             BtnStart.IsEnabled = true;
             BtnStop.IsEnabled = false;
             LogLines.Clear();
+            _csvBuffer.Clear();
+            _csvRowIndex = 0;
             UpdateProgressText();
             AppendLog("[INFO] reset");
         }
@@ -269,6 +277,7 @@ namespace ForceSim.App
                 AppendLog($"[Scaler] {string.Join(",", _lastScaler)}");
                 if (_lastDelta != null)
                     AppendLog($"[Delta] {_lastDelta.Length}x6 matrix");
+                SaveCsv();
                 UpdateProgressText();
                 return;
             }
@@ -309,6 +318,7 @@ namespace ForceSim.App
                 AppendLog($"[Scaler] {string.Join(",", _lastScaler)}");
                 if (_lastDelta != null)
                     AppendLog($"[Delta] {_lastDelta.Length}x6 matrix");
+                SaveCsv();
                 UpdateProgressText();
                 return;
             }
@@ -358,7 +368,37 @@ namespace ForceSim.App
 
             if (needHeatRecalc)
                 RecalcHeatRange();
-            // AppendLog(BuildLogLine(x, y, simP, s6, delta, col, row));
+
+            // CSV 버퍼에 누적
+            _csvRowIndex++;
+            _csvBuffer.Add($"{_csvRowIndex},{x},{y},{simP},{s6[0]},{s6[1]},{s6[2]},{s6[3]},{s6[4]},{s6[5]},{col},{row}");
+        }
+
+        private void InitCsvBuffer(string inputFilePath)
+        {
+            _csvBuffer.Clear();
+            _csvRowIndex = 0;
+            _csvInputFilePath = inputFilePath;
+            _csvStartTime = DateTime.Now;
+        }
+
+        private void SaveCsv()
+        {
+            if (_csvBuffer.Count == 0) return;
+
+            string inputName = System.IO.Path.GetFileNameWithoutExtension(_csvInputFilePath);
+            string timeStamp = _csvStartTime.ToString("yyyyMMdd_HHmmss");
+            string outDir = System.IO.Path.Combine(GetProjectRoot(), "output");
+            Directory.CreateDirectory(outDir);
+            string outPath = System.IO.Path.Combine(outDir, $"{inputName}_{timeStamp}.csv");
+
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("index,X,Y,P,Sa,Sb,Sc,Sd,Se,Sf,SX,SY");
+            foreach (var row in _csvBuffer)
+                sb.AppendLine(row);
+
+            File.WriteAllText(outPath, sb.ToString(), System.Text.Encoding.UTF8);
+            AppendLog($"[CSV] 저장: {System.IO.Path.GetFileName(outPath)}");
         }
         private void MapToSectionCell(short x, short y, out int col, out int row)
         {
